@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Braille View - {{ lesson.title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <a href="{{ url_for('view_lesson', lesson_id=lesson.id) }}" class="btn btn-secondary shadow-sm">
+            ← Back to Lesson
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header bg-dark text-white p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">⠃ Braille Version: {{ lesson.title }}</h3>
+                    <span class="badge bg-primary text-uppercase">{{ 'Tamil' if lesson.language == 'tamil' else 'English' }}</span>
+                </div>
+            </div>
+            <div id="va-braille-container" class="card-body p-5" data-original-text="{{ lesson.content }}">
+                <!-- Braille display area -->
+                <div class="braille-paper shadow-inner">
+                    <p class="braille-dots">{{ lesson.braille_content }}</p>
+                </div>
+            </div>
+            <div class="card-footer bg-light p-3 text-center">
+                <p class="mb-0 text-muted small">
+                    <i class="fas fa-microphone me-1"></i> Say <strong>"Read that"</strong> to hear the original text for this Braille.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .braille-paper {
+        background-color: #ffffff;
+        background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+        background-size: 30px 30px;
+        padding: 3rem;
+        border-radius: 15px;
+        min-height: 400px;
+        border: 1px solid #cbd5e1;
+    }
+    .braille-dots {
+        font-size: 2.8rem;
+        line-height: 2;
+        font-family: 'Courier New', monospace;
+        word-break: break-all;
+        color: #0f172a;
+        margin: 0;
+    }
+    .shadow-inner {
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{% set lesson_json = {
+  'id': lesson.id,
+  'title': lesson.title,
+  'viewUrl': url_for('view_lesson', lesson_id=lesson.id)
+} %}
+<script id="braille-view-data" type="application/json">{{ lesson_json | tojson | safe }}</script>
+<script>
+// ── Voice Assistant: expose Braille view info ──
+const lessonInfo = JSON.parse(document.getElementById('braille-view-data').textContent);
+window.VA_PAGE_DATA = {
+  page: 'braille_view',
+  title: lessonInfo.title,
+  originalText: document.getElementById('va-braille-container').dataset.originalText
+};
+</script>
+{% endblock %}

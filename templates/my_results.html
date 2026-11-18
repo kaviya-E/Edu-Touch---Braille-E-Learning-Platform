@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}My Quiz Results{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">← Dashboard</a>
+  </div>
+</div>
+
+<div class="card border-0 mb-5 text-white overflow-hidden shadow-sm" style="border-radius: 20px; background: linear-gradient(135deg, #1e1b4b, #4338ca);">
+    <div class="card-body p-5 d-flex flex-column justify-content-center">
+        <span class="badge bg-light text-dark px-3 py-2 rounded-pill mb-3 text-uppercase align-self-start" style="letter-spacing: 1px;">Past Analytics</span>
+        <h1 class="display-4 fw-bolder mb-2" style="font-family: 'Inter', sans-serif;"><i class="bi bi-bar-chart-fill me-2"></i> My Quiz Results</h1>
+        <p class="lead opacity-75 mb-0">Track your progress and review all your past quiz attempts right here.</p>
+    </div>
+</div>
+
+{% if results %}
+<div class="row">
+  {% for r in results %}
+  {% if r.total and r.total > 0 %}
+    {% set pct = (((r.score or 0) / r.total) * 100)|int %}
+  {% else %}
+    {% set pct = 0 %}
+  {% endif %}
+  <div class="col-md-6 mb-4">
+    <div class="card shadow-sm h-100 border-0" style="border-radius: 15px; overflow: hidden; transition: transform 0.2s ease;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+      <div class="card-header border-0 py-3 {% if pct >= 70 %}bg-success text-white{% elif pct >= 40 %}bg-warning text-dark{% else %}bg-danger text-white{% endif %}">
+        <div class="d-flex justify-content-between align-items-center">
+          <strong class="fs-5 text-truncate" style="max-width: 75%;" title="{{ r.quiz.title if r.quiz else 'Deleted Quiz' }}">{{ r.quiz.title if r.quiz else 'Deleted Quiz' }}</strong>
+          <span class="badge bg-light text-dark fs-6 rounded-pill px-3">{{ pct }}%</span>
+        </div>
+      </div>
+      <div class="card-body p-4 bg-white">
+        <p class="mb-2 fs-5"><strong>Score:</strong> {{ r.score }} / {{ r.total }}</p>
+        <p class="mb-4 text-muted small"><i class="bi bi-clock me-1"></i> {{ r.submitted_at.strftime('%d %b %Y at %H:%M') if r.submitted_at else 'Unknown Date' }}</p>
+        {% set bar_style = 'style="width: ' ~ pct ~ '%;"' %}
+        <div class="progress mb-4 rounded-pill" style="height:12px; background-color: #e2e8f0;">
+          <div class="progress-bar rounded-pill {% if pct >= 70 %}bg-success{% elif pct >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+               {{ bar_style | safe }}></div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('quiz_result', result_id=r.id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 w-50 fw-semibold">📋 Details</a>
+            <a href="{{ url_for('take_quiz', quiz_id=r.quiz_id) }}" class="btn btn-outline-dark btn-sm rounded-pill px-3 w-50 fw-semibold">🔄 Retry</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info text-center py-5">
+  <h4>No quiz attempts yet!</h4>
+  <p>Go to the <a href="{{ url_for('student_dashboard') }}">dashboard</a> and take a quiz.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% set results_json = [] %}
+{% for r in results %}
+  {% set _ = results_json.append({
+    'quizTitle': r.quiz.title if r.quiz else 'Deleted Quiz',
+    'score': r.score or 0,
+    'total': r.total or 0,
+    'retryUrl': url_for('take_quiz', quiz_id=r.quiz_id),
+    'detailUrl': url_for('quiz_result', result_id=r.id)
+  }) %}
+{% endfor %}
+<script id="results-data" type="application/json">{{ results_json | tojson | safe }}</script>
+<script>
+const myResults = JSON.parse(document.getElementById('results-data').textContent);
+window.VA_PAGE_DATA = {
+  page: 'my_results',
+  results: myResults
+};
+
+// Auto-read results summary on load
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    const results = window.VA_PAGE_DATA.results;
+    if (!results.length) return;
+    const lines = results.map(function(r) {
+      const pct = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
+      return r.quizTitle + ': ' + r.score + ' out of ' + r.total + ', ' + pct + ' percent';
+    });
+    const msg = 'You have ' + results.length + ' quiz result' + (results.length > 1 ? 's' : '') + '. ' + lines.join('. ');
+    if (window.speechSynthesis) {
+      const utt = new SpeechSynthesisUtterance(msg);
+      utt.lang = 'en-US'; utt.rate = 0.95;
+      window.speechSynthesis.speak(utt);
+    }
+  }, 900);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2>📄 File Braille View</h2>
+    <hr>
+
+    <!-- ✅ SAFE TITLE -->
+    <h4>
+        {{ lesson.title if lesson else "Uploaded File Braille" }}
+    </h4>
+
+    <div class="card mt-3">
+        <div class="card-body">
+
+            <p style="font-size:2em; line-height:2; font-family:monospace;">
+                {{ braille }}
+            </p>
+
+        </div>
+    </div>
+
+    <br>
+
+    <!-- ✅ SAFE DOWNLOAD -->
+    {% if lesson %}
+    <a href="{{ url_for('download_file_braille', lesson_id=lesson.id) }}" 
+       class="btn btn-success">
+        ⬇ Download File Braille PDF
+    </a>
+
+    <a href="{{ url_for('view_lesson', lesson_id=lesson.id) }}" 
+       class="btn btn-secondary">
+        ← Back
+    </a>
+    {% endif %}
+
+</div>
+
+{% endblock %}

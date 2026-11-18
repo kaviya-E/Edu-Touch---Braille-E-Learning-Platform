@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Lesson{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Edit Lesson</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-warning">
+                <h4 class="mb-0">Update Lesson</h4>
+            </div>
+            <div class="card-body">
+
+                <!-- IMPORTANT: enctype added -->
+                <form method="POST" action="{{ url_for('edit_lesson', lesson_id=lesson.id) }}" enctype="multipart/form-data">
+
+                    <!-- TITLE -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Lesson Title</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ lesson.title }}" required>
+                    </div>
+                    
+                    <!-- LANGUAGE SELECTION -->
+                    <div class="mb-3">
+                        <label for="language" class="form-label">Braille Language</label>
+                        <select class="form-select" id="language" name="language" required>
+                            <option value="english" {% if lesson.language == 'english' %}selected{% endif %}>English to English Braille</option>
+                            <option value="tamil" {% if lesson.language == 'tamil' %}selected{% endif %}>Tamil to Bharati Braille (Tamil)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- CONTENT -->
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Lesson Content</label>
+                        <textarea class="form-control" id="content" name="content" rows="15" required>{{ lesson.content }}</textarea>
+                        <small class="text-muted">Any changes will update the Braille conversion automatically.</small>
+                    </div>
+
+                    <!-- ✅ EXISTING FILE DISPLAY -->
+                    {% if lesson.file_path %}
+                    <div class="mb-3">
+                        <label class="form-label">Current Uploaded File</label>
+                        
+                        <div class="border p-3 rounded bg-light">
+
+                            <p><strong>{{ lesson.file_path.split('/')[-1] }}</strong></p>
+
+                            <a href="{{ url_for('static', filename='uploads/' + lesson.file_path.split('/')[-1]) }}" 
+                               target="_blank"
+                               class="btn btn-success btn-sm">
+                               📄 View File
+                            </a>
+
+                            <a href="{{ url_for('static', filename='uploads/' + lesson.file_path.split('/')[-1]) }}" 
+                               download
+                               class="btn btn-primary btn-sm">
+                               ⬇ Download
+                            </a>
+
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ✅ NEW FILE UPLOAD -->
+                    <div class="mb-3">
+                        <label class="form-label">Upload New File (Optional)</label>
+                        <input type="file" class="form-control" name="lesson_file">
+                        <small class="text-muted">Upload new file to replace old one (PDF, Word, PPT, TXT)</small>
+                    </div>
+
+                    <!-- BUTTONS -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary">
+                            ← Cancel
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            💾 Update Lesson
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

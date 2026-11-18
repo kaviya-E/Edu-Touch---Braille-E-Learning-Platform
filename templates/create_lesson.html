@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Create Lesson{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-12">
+        <h2>Create New Lesson</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Lesson Details</h4>
+            </div>
+
+            <div class="card-body">
+
+                <!-- IMPORTANT -->
+                <form method="POST" action="{{ url_for('create_lesson') }}" enctype="multipart/form-data">
+
+                    <!-- TITLE -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Lesson Title</label>
+                        <input type="text" class="form-control" id="title" name="title"
+                               placeholder="Enter lesson title" required>
+                    </div>
+
+                    <!-- LANGUAGE SELECTION -->
+                    <div class="mb-3">
+                        <label for="language" class="form-label">Braille Language</label>
+                        <select class="form-select" id="language" name="language" required>
+                            <option value="english" selected>English to English Braille</option>
+                            <option value="tamil">Tamil to Bharati Braille (Tamil)</option>
+                        </select>
+                    </div>
+
+                    <!-- CONTENT (OPTIONAL NOW) -->
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Lesson Content (Optional)</label>
+                        <textarea class="form-control" id="content" name="content" rows="10"
+                                  placeholder="Enter lesson content (optional - for text based lesson)"></textarea>
+                        <small class="text-muted">
+                            Text will be converted to Braille automatically.
+                        </small>
+                    </div>
+
+                    <!-- FILE UPLOAD -->
+                    <div class="mb-3">
+                        <label for="lesson_file" class="form-label">Upload File (Optional)</label>
+                        <input type="file" class="form-control" id="lesson_file" name="lesson_file">
+                        <small class="text-muted">
+                            Supported: PDF, Word (DOC/DOCX), PPT, TXT
+                        </small>
+                    </div>
+
+                    <!-- BUTTONS -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary">
+                            ← Back
+                        </a>
+
+                        <button type="submit" class="btn btn-success">
+                            💾 Create Lesson
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

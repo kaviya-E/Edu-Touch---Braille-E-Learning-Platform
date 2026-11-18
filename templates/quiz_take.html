@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}Take Quiz — {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    <a href="{{ url_for('my_results') }}" class="btn btn-outline-primary ms-2">📊 My Results</a>
+  </div>
+</div>
+
+<!-- Quiz Header -->
+<div class="card shadow-lg mb-4" style="background:linear-gradient(135deg,#1b5e20,#388e3c); color:#fff; border-radius:10px;">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h2 class="mb-1">🧠 {{ quiz.title }}</h2>
+        <p class="mb-0 opacity-75">{{ quiz.questions|length }} Questions &nbsp;|&nbsp; Lesson: {{ quiz.lesson.title if quiz.lesson else 'Deleted Lesson' }}</p>
+      </div>
+      <div>
+        <span id="quizStatus" class="badge bg-light text-dark fs-6">Question 1 of {{ quiz.questions|length }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Audio Controls bar -->
+<div class="card shadow-sm mb-4 border-0 bg-light">
+  <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
+    <span class="fw-bold">🔊 Audio:</span>
+    <button onclick="readCurrentQuestion()" class="btn btn-sm btn-success" id="btnReadQ">▶ Read Question</button>
+    <button onclick="stopSpeech()" class="btn btn-sm btn-danger">⏹ Stop</button>
+    <label class="ms-3 mb-0">Speed:</label>
+    <select id="speechRate" class="form-select form-select-sm w-auto">
+      <option value="0.7">0.7x (Slow)</option>
+      <option value="1" selected>1x (Normal)</option>
+      <option value="1.3">1.3x (Fast)</option>
+    </select>
+    <span class="text-muted small ms-auto">Keyboard: <kbd>1</kbd>-<kbd>4</kbd> = Options &nbsp; <kbd>R</kbd> = Read &nbsp; <kbd>←</kbd> = Prev &nbsp; <kbd>Enter</kbd> = Next</span>
+  </div>
+</div>
+
+{% if existing %}
+<!-- Already attempted banner -->
+<div class="alert alert-warning">
+  ⚠️ You already attempted this quiz and scored <strong>{{ existing.score }} / {{ existing.total }}</strong>.
+  Submitting again will overwrite your previous result.
+</div>
+{% endif %}
+
+<!-- Quiz Form -->
+<form method="POST" action="{{ url_for('submit_quiz', quiz_id=quiz.id) }}" id="quizForm">
+
+  <!-- Question slides -->
+  {% for q in quiz.questions %}
+  <div class="quiz-slide {% if not loop.first %}d-none{% endif %}" id="slide-{{ loop.index }}"
+       data-question="{{ q.question_text | e }}"
+       data-options="{{ q.option_a | e }}|||{{ q.option_b | e }}|||{{ q.option_c | e }}|||{{ q.option_d | e }}">
+    <div class="card shadow border-0 mb-3">
+      <div class="card-header bg-primary text-white d-flex justify-content-between">
+        <span>Question {{ loop.index }} of {{ quiz.questions|length }}</span>
+        <span class="badge bg-{% if q.question_type == 'truefalse' %}secondary{% else %}info text-dark{% endif %}">
+          {% if q.question_type == 'truefalse' %}True/False{% else %}MCQ{% endif %}
+        </span>
+      </div>
+      <div class="card-body">
+        <p class="fs-5 fw-semibold mb-4">{{ q.question_text }}</p>
+        <div class="row g-3">
+          {% for label, option in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+          <div class="col-md-6">
+            <label class="option-card d-flex align-items-center gap-3 p-3 rounded border cursor-pointer w-100"
+                   style="cursor:pointer; transition:all .2s;"
+                   onmouseover="this.style.borderColor='#1565c0';this.style.background='#e3f2fd';"
+                   onmouseout="resetOptionStyle(this)">
+              <input type="radio" name="q_{{ q.id }}" value="{{ label }}"
+                     class="form-check-input mt-0 option-radio" data-slide="{{ loop.index }}"
+                     onchange="highlightSelected(this)">
+              <span class="badge bg-primary me-1">{{ label }}</span>
+              <span>{{ option }}</span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation buttons -->
+    <div class="d-flex justify-content-between mt-2 mb-4">
+      {% if not loop.first %}
+      <button type="button" class="btn btn-outline-secondary" onclick="goSlide(Number('{{ loop.index - 1 }}'))">← Previous</button>
+      {% else %}
+      <span></span>
+      {% endif %}
+
+      {% if not loop.last %}
+      <button type="button" class="btn btn-primary" id="next-{{ loop.index }}" onclick="goSlide(Number('{{ loop.index + 1 }}'))">Next →</button>
+      {% else %}
+      <button type="submit" class="btn btn-success btn-lg">✅ Submit Quiz</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Progress bar -->
+  <div class="progress mb-4" style="height:10px;">
+    <div class="progress-bar bg-success" id="progressBar" style="width:0%;transition:width .4s;"></div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{% set quiz_json = {
+  'id': quiz.id,
+  'title': quiz.title,
+  'totalQuestions': quiz.questions|length
+} %}
+<script id="quiz-data" type="application/json">{{ quiz_json | tojson | safe }}</script>
+<script>
+// ── Voice Assistant: expose quiz page context ──
+const quizData = JSON.parse(document.getElementById('quiz-data').textContent);
+window.VA_PAGE_DATA = {
+  page: 'quiz_take',
+  quiz: quizData
+};
+</script>
+<script>
+const totalSlides = parseInt("{{ quiz.questions|length }}") || 0;
+let currentSlide = 1;
+let synth = window.speechSynthesis;
+
+function goSlide(n) {
+  document.getElementById('slide-' + currentSlide).classList.add('d-none');
+  currentSlide = n;
+  document.getElementById('slide-' + currentSlide).classList.remove('d-none');
+  document.getElementById('quizStatus').textContent = `Question ${currentSlide} of ${totalSlides}`;
+  // Update progress
+  const answered = document.querySelectorAll('input[type=radio]:checked').length;
+  document.getElementById('progressBar').style.width = Math.round((answered / totalSlides) * 100) + '%';
+  stopSpeech();
+  // Auto-read question after short delay
+  setTimeout(readCurrentQuestion, 400);
+}
+
+function readCurrentQuestion() {
+  stopSpeech();
+  const slide = document.getElementById('slide-' + currentSlide);
+  if (!slide) return;
+  const qText = slide.dataset.question;
+  const utt = new SpeechSynthesisUtterance(qText);
+  utt.lang = 'en-US';
+  utt.rate = parseFloat(document.getElementById('speechRate').value) || 1;
+  synth.speak(utt);
+}
+
+function stopSpeech() {
+  if (synth.speaking) synth.cancel();
+}
+
+function highlightSelected(el) {
+  const slideIdx = el.dataset ? el.dataset.slide : el;
+  const radios = document.querySelectorAll(`input[data-slide="${slideIdx}"]`);
+  radios.forEach(r => {
+    const label = r.closest('label');
+    if (r.checked) {
+      label.style.background = '#c8e6c9';
+      label.style.borderColor = '#2e7d32';
+    } else {
+      label.style.background = '';
+      label.style.borderColor = '';
+    }
+  });
+  // Update progress bar
+  const answered = document.querySelectorAll('input[type=radio]:checked').length;
+  document.getElementById('progressBar').style.width = Math.round((answered / totalSlides) * 100) + '%';
+}
+
+function resetOptionStyle(el) {
+  // Only reset if not selected
+  const radio = el.querySelector('input[type=radio]');
+  if (!radio.checked) {
+    el.style.borderColor = '';
+    el.style.background = '';
+  }
+}
+
+// Keyboard shortcuts: 1/2/3/4 = select option, Enter = next
+document.addEventListener('keydown', function(e) {
+  const map = {'1': 0, '2': 1, '3': 2, '4': 3};
+  if (e.key in map) {
+    const radios = document.querySelectorAll(`input[data-slide="${currentSlide}"]`);
+    if (radios[map[e.key]]) {
+      radios[map[e.key]].checked = true;
+      highlightSelected(currentSlide);
+      
+      // Stop current reading and announce selected option
+      stopSpeech();
+      const slide = document.getElementById('slide-' + currentSlide);
+      if (slide) {
+          const opts = slide.dataset.options.split('|||');
+          const letters = ['A', 'B', 'C', 'D'];
+          const selectedText = "Selected option " + letters[map[e.key]] + ", " + opts[map[e.key]];
+          const utt = new SpeechSynthesisUtterance(selectedText);
+          utt.lang = 'en-US';
+          utt.rate = parseFloat(document.getElementById('speechRate').value) || 1;
+          
+          // Auto-advance after reading
+          utt.onend = function() {
+              if (currentSlide < totalSlides) {
+                  goSlide(currentSlide + 1);
+              }
+          };
+          
+          synth.speak(utt);
+      }
+    }
+  }
+  if (e.key === 'Enter' || e.key === 'ArrowRight') {
+    if (currentSlide < totalSlides) goSlide(currentSlide + 1);
+  }
+  if (e.key === 'Backspace' || e.key === 'ArrowLeft' || e.key.toLowerCase() === 'p') {
+    if (currentSlide > 1) goSlide(currentSlide - 1);
+  }
+  if (e.key.toLowerCase() === 'r') {
+    readCurrentQuestion();
+  }
+});
+
+// Auto-read first question on load
+window.addEventListener('load', () => setTimeout(readCurrentQuestion, 700));
+
+// ── Voice Command Handlers (called by voice_assistant.js) ──
+window.VA_readQuestion  = readCurrentQuestion;
+window.VA_stopSpeech    = stopSpeech;
+window.VA_goNext        = function() { if (currentSlide < totalSlides) goSlide(currentSlide + 1); };
+window.VA_goPrev        = function() { if (currentSlide > 1) goSlide(currentSlide - 1); };
+window.VA_answerOption  = function(letter) {
+  const radios = document.querySelectorAll(`input[data-slide="${currentSlide}"]`);
+  const map = { A:0, B:1, C:2, D:3 };
+  const idx = map[letter.toUpperCase()];
+  if (radios[idx]) { 
+      radios[idx].checked = true; 
+      highlightSelected(currentSlide); 
+      
+      // Stop current reading and announce selected option via voice assistant logic
+      stopSpeech();
+      const slide = document.getElementById('slide-' + currentSlide);
+      if (slide) {
+          const opts = slide.dataset.options.split('|||');
+          const letters = ['A', 'B', 'C', 'D'];
+          const selectedText = "Selected option " + letters[idx] + ", " + opts[idx];
+          const utt = new SpeechSynthesisUtterance(selectedText);
+          utt.lang = 'en-US';
+          utt.rate = parseFloat(document.getElementById('speechRate').value) || 1;
+          
+          // Auto-advance after reading
+          utt.onend = function() {
+              if (currentSlide < totalSlides) {
+                  goSlide(currentSlide + 1);
+              }
+          };
+          
+          synth.speak(utt);
+      }
+  }
+};
+window.VA_submitQuiz = function() {
+  document.getElementById('quizForm').submit();
+};
+</script>
+{% endblock %}

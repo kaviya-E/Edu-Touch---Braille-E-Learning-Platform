@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Smart Braille{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background: url("{{ url_for('static', filename='images/braille_bg.png') }}") no-repeat center center fixed;
+        background-size: cover;
+    }
+    .card.shadow {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+        border: none;
+    }
+</style>
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Create Account</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">I am a:</label>
+                        <select class="form-select" id="role" name="role" required onchange="toggleContactNumber()">
+                            <option value="">Select Role</option>
+                            <option value="admin">Admin</option>
+                            <option value="instructor">Instructor</option>
+                            <option value="student">Student</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="contactNumberGroup" style="display: none;">
+                        <label for="contact_number" class="form-label">Contact Number (Required for Instructors)</label>
+                        <input type="text" class="form-control" id="contact_number" name="contact_number">
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <p class="text-center mb-0">
+                    Already have an account? <a href="{{ url_for('login') }}">Login here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleContactNumber() {
+    var role = document.getElementById('role').value;
+    var contactGroup = document.getElementById('contactNumberGroup');
+    var contactInput = document.getElementById('contact_number');
+    if (role === 'instructor') {
+        contactGroup.style.display = 'block';
+        contactInput.required = true;
+    } else {
+        contactGroup.style.display = 'none';
+        contactInput.required = false;
+        contactInput.value = '';
+    }
+}
+</script>
+{% endblock %}

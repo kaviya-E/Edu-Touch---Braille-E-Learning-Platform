@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lesson.title }} - View Lesson{% endblock %}
+
+{% block content %}
+
+<!-- Modern Hero Header -->
+<div class="card border-0 mb-5 text-white overflow-hidden shadow-sm" style="border-radius: 24px; background: linear-gradient(135deg, #1e293b, #334155); position: relative;">
+    <div class="card-body p-5">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 border-opacity-25" style="backdrop-filter: blur(4px);">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </a>
+            <span class="badge bg-white bg-opacity-10 text-white rounded-pill px-3 py-2 border border-white border-opacity-10">LESSON MODULE</span>
+        </div>
+        
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-3 fw-bolder mb-3" style="letter-spacing: -1.5px; font-family: 'Inter', sans-serif;">{{ lesson.title }}</h1>
+                <div class="d-flex flex-wrap gap-4 opacity-75">
+                    <div class="d-flex align-items-center"><i class="bi bi-person-circle me-2 fs-5"></i> <span><strong class="text-white">Instructor:</strong> <span id="va-instructor-name">{{ lesson.instructor.username if lesson.instructor else 'Unknown' }}</span></span></div>
+                    <div class="d-flex align-items-center"><i class="bi bi-envelope-at me-2 fs-5"></i> <span><strong class="text-white">Email:</strong> <span id="va-instructor-email">{{ lesson.instructor.email if lesson.instructor else 'Unknown' }}</span></span></div>
+                    <div class="d-flex align-items-center"><i class="bi bi-calendar3 me-2 fs-5"></i> <span>{{ lesson.created_at.strftime('%B %d, %Y') if lesson.created_at else 'Unknown Date' }}</span></div>
+                </div>
+            </div>
+            <div class="col-lg-4 d-none d-lg-block text-end">
+                <i class="bi bi-book-half display-1 opacity-25"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Abstract background decoration -->
+    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.03); border-radius: 50%;"></div>
+    <div style="position: absolute; bottom: -20px; left: 10%; width: 100px; height: 100px; background: rgba(255,255,255,0.02); border-radius: 50%;"></div>
+</div>
+
+<!-- Original Text Section (Full Horizontal) -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="border-radius: 20px; overflow: hidden;">
+            <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-file-text me-2 text-primary"></i> Original Lesson Text</h4>
+                <span class="badge rounded-pill bg-light text-secondary px-3 py-2 border border-secondary border-opacity-10">{{ 'Tamil' if lesson.language == 'tamil' else 'English' }} Content</span>
+            </div>
+            <div class="card-body px-4 pb-4 pt-0">
+                <div id="va-original-text" class="p-4 bg-light rounded-4" style="font-size:1.25rem; line-height:1.8; color: #334155; min-height: 150px;">
+                    {{ lesson.content if lesson.content else "No text content provided." }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Braille Representation Section (Full Horizontal / White Background) -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="border-radius: 20px; overflow: hidden; background: #fff;">
+            <div class="card-header bg-white border-0 py-4 px-4">
+                <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-dot me-1 text-success"></i> Braille Representation (Grade 1)</h4>
+            </div>
+            <div class="card-body px-4 pb-4 pt-0">
+                <div class="p-4 bg-light rounded-4 mb-4 text-center" style="border: 1px solid #e2e8f0; min-height: 180px;">
+                    <p class="mb-0" style="font-size:2.8rem; line-height:1.6; font-family:monospace; color: #14532d; word-break: break-all; letter-spacing: 4px;">
+                        {{ lesson.braille_content }}
+                    </p>
+                </div>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="{{ url_for('download_braille_pdf', lesson_id=lesson.id) }}" class="btn btn-success rounded-pill px-5 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-file-earmark-pdf me-2"></i> Download Braille PDF
+                    </a>
+                    <a href="{{ url_for('download_brf', lesson_id=lesson.id) }}" class="btn btn-outline-success rounded-pill px-5 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-file-binary me-2"></i> Download BRF
+                    </a>
+                    <a href="{{ url_for('view_braille_pdf', lesson_id=lesson.id) }}" target="_blank" class="btn btn-dark rounded-pill px-5 py-2 fw-semibold">
+                        <i class="bi bi-eye me-2"></i> Open Full View
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if lesson.file_path %}
+<!-- Uploaded Resources Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm" style="border-radius: 20px; overflow: hidden;">
+            <div class="card-header border-0 py-4 px-4" style="background: linear-gradient(to right, #fffbeb, #fff);">
+                <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-folder2-open me-2 text-warning"></i> Additional Resources</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-{% if lesson.file_path.lower().endswith('.pdf') %}8{% else %}12{% endif %}">
+                        <div class="d-flex flex-wrap gap-3 mb-4">
+                            <div class="p-3 border rounded-4 d-flex align-items-center gap-3 bg-light border-opacity-50">
+                                <i class="bi bi-file-earmark-arrow-down fs-2 text-primary"></i>
+                                <div>
+                                    <p class="mb-0 small text-muted text-uppercase fw-bold">Primary Attachment</p>
+                                    <h6 class="mb-0 text-truncate" style="max-width: 250px;">{{ lesson.file_path }}</h6>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-3">
+                            <a href="{{ url_for('static', filename='uploads/' + lesson.file_path) }}" download class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm">
+                                <i class="bi bi-download me-2"></i> Download File
+                            </a>
+                            <a href="{{ url_for('download_brf', lesson_id=lesson.id) }}" class="btn btn-outline-dark rounded-pill px-4 fw-bold">
+                                <i class="bi bi-file-binary me-2"></i> Download BRF
+                            </a>
+                            <a href="{{ url_for('view_file_braille', lesson_id=lesson.id) }}" class="btn btn-dark rounded-pill px-4 fw-bold">
+                                <i class="bi bi-grid-3x3-gap me-2"></i> View File Braille
+                            </a>
+                            <a href="{{ url_for('download_file_braille', lesson_id=lesson.id) }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold border-0 bg-light">
+                                <i class="bi bi-file-earmark-zip me-2"></i> Braille Zip
+                            </a>
+                        </div>
+                    </div>
+
+                    {% if lesson.file_path.lower().endswith('.pdf') %}
+                    <div class="col-lg-4 text-center">
+                        <div class="p-3 border rounded-4 bg-light">
+                            <i class="bi bi-file-pdf display-4 text-danger mb-2"></i>
+                            <p class="mb-3 text-muted">A PDF viewer is available for this lesson.</p>
+                            <a href="{{ url_for('static', filename='uploads/'+lesson.file_path) }}" target="_blank" class="btn btn-outline-danger rounded-pill px-4 w-100 fw-bold">
+                                <i class="bi bi-fullscreen me-2"></i> Open Full Viewer
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if lesson.file_path.lower().endswith('.pdf') %}
+                <div class="mt-4 pt-4 border-top">
+                    <iframe src="{{ url_for('static', filename='uploads/' + lesson.file_path) }}" 
+                            style="width: 100%; height: 500px; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff;"
+                            title="{{ lesson.title }} PDF">
+                    </iframe>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- New Premium Audio Console -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card border-0 shadow text-white overflow-hidden" style="border-radius: 20px; background: linear-gradient(135deg, #0284c7, #0369a1);">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-lg-3 text-center text-lg-start mb-4 mb-lg-0">
+                        <div class="d-inline-flex align-items-center gap-3">
+                            <div class="bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="bi bi-volume-up-fill fs-2"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-0">Audio Suite</h5>
+                                <span id="audioStatus" class="badge rounded-pill bg-white bg-opacity-25 px-3 py-1">Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6">
+                        <div class="bg-black bg-opacity-10 rounded-pill p-3 px-4 d-flex justify-content-center gap-3 align-items-center">
+                            <button id="btnPlay" onclick="playAudio('original')" class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center p-0" style="width: 50px; height: 50px;" title="Play Original">
+                                <i class="bi bi-play-fill fs-3 text-primary"></i>
+                            </button>
+                            {% if file_content %}
+                            <button id="btnPlayFile" onclick="playAudio('file')" class="btn btn-info border-0 rounded-pill px-4 py-2 fw-bold d-flex align-items-center">
+                                <i class="bi bi-file-earmark-music me-2"></i> Read File
+                            </button>
+                            {% endif %}
+                            <button id="btnPause" onclick="pauseAudio()" class="btn btn-warning border-0 rounded-circle d-flex align-items-center justify-content-center p-0" style="width: 45px; height: 45px;" title="Pause">
+                                <i class="bi bi-pause-fill fs-3"></i>
+                            </button>
+                            <button id="btnStop" onclick="stopAudio()" class="btn btn-danger border-0 rounded-circle d-flex align-items-center justify-content-center p-0" style="width: 45px; height: 45px;" title="Stop">
+                                <i class="bi bi-stop-fill fs-3"></i>
+                            </button>
+                        </div>
+                        <div id="audioProgress" class="text-center mt-2 small text-white text-opacity-75" style="height: 20px;"></div>
+                    </div>
+
+                    <div class="col-lg-3 mt-4 mt-lg-0">
+                        <div class="d-flex flex-column gap-2">
+                             <div class="d-flex align-items-center gap-2">
+                                <small class="fw-bold opacity-75">SPEED:</small>
+                                <select id="speedControl" class="form-select form-select-sm bg-white bg-opacity-10 border-white border-opacity-25 text-white rounded-pill" style="cursor: pointer;" onchange="changeSpeed()">
+                                    <option value="0.5" class="text-dark">0.5x</option>
+                                    <option value="0.75" class="text-dark">0.75x</option>
+                                    <option value="1" selected class="text-dark">1.0x Normal</option>
+                                    <option value="1.25" class="text-dark">1.25x</option>
+                                    <option value="1.5" class="text-dark">1.5x</option>
+                                    <option value="2" class="text-dark">2x</option>
+                                </select>
+                            </div>
+                            <a href="{{ url_for('download_audio', lesson_id=lesson.id) }}" class="btn btn-outline-light btn-sm rounded-pill py-2 fw-bold border-opacity-25">
+                                <i class="bi bi-download me-2"></i> Download MP3
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lesson-data" style="display: none;" 
+                     data-content="{{ lesson.content | default('', true) }}"
+                     data-file-content="{{ file_content | default('', true) }}">
+                </div>
+                
+                <div class="mt-3 pt-3 border-top border-white border-opacity-10 row align-items-center">
+                    <div class="col-auto"><small class="fw-bold opacity-75">VOICE SELECTION:</small></div>
+                    <div class="col">
+                        <select id="voiceSelect" class="form-select form-select-sm bg-white bg-opacity-10 border-white border-opacity-25 text-white rounded-pill"></select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Section (For Students) -->
+{% if current_user.role == 'student' %}
+<div class="row mb-5">
+    <div class="col-12 text-center">
+        <div class="card shadow-sm border-0" style="border-radius: 20px; background: #fff;">
+            <div class="card-body p-5">
+                <h3 class="fw-bold mb-3"><i class="bi bi-chat-right-text me-2 text-primary"></i> Share Your Feedback</h3>
+                <p class="text-muted small mb-4">How was this lesson? Your feedback helps {{ lesson.instructor.username }} improve the content for everyone.</p>
+                
+                <form action="{{ url_for('submit_feedback') }}" method="POST">
+                    <input type="hidden" name="instructor_id" value="{{ lesson.instructor_id }}">
+                    <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                    
+                    <div class="mb-4">
+                        <div class="star-rating d-inline-flex flex-row-reverse gap-3">
+                            <input type="radio" id="star5" name="rating" value="5" class="visually-hidden" required {% if existing_feedback and existing_feedback.rating == 5 %}checked{% endif %}>
+                            <label for="star5" class="fs-1 text-muted cursor-pointer hover-warning" title="5 Stars"><i class="bi bi-star-fill"></i></label>
+                            
+                            <input type="radio" id="star4" name="rating" value="4" class="visually-hidden" {% if existing_feedback and existing_feedback.rating == 4 %}checked{% endif %}>
+                            <label for="star4" class="fs-1 text-muted cursor-pointer hover-warning" title="4 Stars"><i class="bi bi-star-fill"></i></label>
+                            
+                            <input type="radio" id="star3" name="rating" value="3" class="visually-hidden" {% if existing_feedback and existing_feedback.rating == 3 %}checked{% endif %}>
+                            <label for="star3" class="fs-1 text-muted cursor-pointer hover-warning" title="3 Stars"><i class="bi bi-star-fill"></i></label>
+                            
+                            <input type="radio" id="star2" name="rating" value="2" class="visually-hidden" {% if existing_feedback and existing_feedback.rating == 2 %}checked{% endif %}>
+                            <label for="star2" class="fs-1 text-muted cursor-pointer hover-warning" title="2 Stars"><i class="bi bi-star-fill"></i></label>
+                            
+                            <input type="radio" id="star1" name="rating" value="1" class="visually-hidden" {% if existing_feedback and existing_feedback.rating == 1 %}checked{% endif %}>
+                            <label for="star1" class="fs-1 text-muted cursor-pointer hover-warning" title="1 Star"><i class="bi bi-star-fill"></i></label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 mx-auto" style="max-width: 600px;">
+                        <textarea name="comment" rows="3" class="form-control border-0 bg-light rounded-3 p-3 shadow-inner" placeholder="What did you like? What could be better?">{% if existing_feedback and existing_feedback.comment %}{{ existing_feedback.comment }}{% endif %}</textarea>
+                    </div>
+
+                    <div>
+                        <button type="submit" class="btn btn-primary px-5 py-2 rounded-pill shadow-sm fw-bold">
+                            {% if existing_feedback %}Update Feedback{% else %}Submit Feedback{% endif %} <i class="bi bi-send ms-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .star-rating input:checked ~ label { color: #ffc107 !important; }
+    .star-rating label:hover,
+    .star-rating label:hover ~ label { color: #ffcd39 !important; }
+    .cursor-pointer { cursor: pointer; }
+    .hover-warning:hover { transform: scale(1.1); transition: transform 0.2s; }
+    .shadow-inner { box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); }
+</style>
+
+<script>
+    document.addEventListener("keydown", function(event) {
+        // Prevent key mapping if typing in a text field
+        const tag = event.target.tagName;
+        if (tag === 'TEXTAREA' || (tag === 'INPUT' && event.target.type !== 'radio')) {
+            return;
+        }
+
+        const key = event.key;
+        if (["1", "2", "3", "4", "5"].includes(key)) {
+            const starInput = document.getElementById("star" + key);
+            if (starInput) {
+                starInput.checked = true;
+                starInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+    });
+</script>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+
+{% set lesson_json = {
+  'id': lesson.id,
+  'title': lesson.title,
+  'hasQuiz': true if lesson.quiz else false,
+  'quizUrl': url_for('take_quiz', quiz_id=lesson.quiz.id) if lesson.quiz else None,
+  'brfUrl': url_for('download_brf', lesson_id=lesson.id),
+  'braillePdfUrl': url_for('download_braille_pdf', lesson_id=lesson.id),
+  'filePath': lesson.file_path,
+  'hasFileContent': true if file_content else false,
+  'fileBrailleUrl': url_for('download_file_braille', lesson_id=lesson.id) if lesson.file_path else None,
+  'viewFileBrailleUrl': url_for('view_file_braille', lesson_id=lesson.id) if lesson.file_path else None
+} %}
+<script id="current-lesson-data" type="application/json">{{ lesson_json | tojson | safe }}</script>
+<script>
+// ── Voice Assistant: expose current lesson data ──
+const currentLesson = JSON.parse(document.getElementById('current-lesson-data').textContent);
+window.VA_PAGE_DATA = {
+  page: 'view_lesson',
+  lessons: [],   // no lesson list to browse here
+  currentLesson: currentLesson
+};
+</script>
+
+<script>
+const lessonContent = document.getElementById('lesson-data').dataset.content;
+const fileContent = `{{ file_content | safe }}`;
+const lessonLang = "{{ lesson.language }}";
+const langCode = lessonLang === 'tamil' ? 'ta-IN' : 'en-US';
+
+let synth = window.speechSynthesis;
+let utterance = null;
+let isPaused = false;
+let voices = [];
+
+// Load available voices
+function loadVoices() {
+    voices = synth.getVoices();
+    const voiceSelect = document.getElementById('voiceSelect');
+    voiceSelect.innerHTML = '';
+
+    // Filter voices for the lesson language
+    const filtered = voices.filter(v => v.lang.startsWith(lessonLang === 'tamil' ? 'ta' : 'en'));
+    const fallback = voices; // if no match, show all
+
+    const list = filtered.length > 0 ? filtered : fallback;
+
+    list.forEach((voice, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(opt);
+    });
+
+    // Auto-select a good default
+    if (filtered.length === 0) {
+        document.getElementById('audioProgress').textContent =
+            `⚠️ No ${lessonLang === 'tamil' ? 'Tamil' : 'English'} voice found — using default voice.`;
+    }
+}
+
+if (synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = loadVoices;
+}
+loadVoices();
+
+function getSelectedVoice() {
+    const idx = document.getElementById('voiceSelect').value;
+    const filtered = voices.filter(v => v.lang.startsWith(lessonLang === 'tamil' ? 'ta' : 'en'));
+    const list = filtered.length > 0 ? filtered : voices;
+    return list[idx] || voices[0] || null;
+}
+
+let currentSource = 'original';
+
+function playAudio(source) {
+    if (!synth) {
+        alert('Your browser does not support Text-to-Speech.');
+        return;
+    }
+
+    // If source changed, stop and start over
+    if (source && source !== currentSource) {
+        stopAudio();
+        currentSource = source;
+    }
+
+    // Resume if paused
+    if (isPaused) {
+        synth.resume();
+        isPaused = false;
+        setStatus('Playing');
+        return;
+    }
+
+    // Cancel any ongoing speech
+    synth.cancel();
+
+    let text = (currentSource === 'file') ? fileContent : lessonContent;
+    text = text.trim();
+    
+    if (!text) {
+        document.getElementById('audioProgress').textContent = '⚠️ No text content to read.';
+        return;
+    }
+
+    utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = langCode;
+    utterance.rate = parseFloat(document.getElementById('speedControl').value) || 1.0;
+    utterance.pitch = 1.0;
+
+    const voice = getSelectedVoice();
+    if (voice) utterance.voice = voice;
+
+    utterance.onstart = () => setStatus('Playing');
+    utterance.onend = () => { setStatus('Stopped'); isPaused = false; utterance = null; };
+    utterance.onerror = (e) => {
+        setStatus('Error');
+        document.getElementById('audioProgress').textContent = '❌ Error: ' + e.error;
+    };
+    utterance.onpause = () => setStatus('Paused');
+    utterance.onresume = () => setStatus('Playing');
+
+    // ✨ Fix: Add a tiny delay to give the browser time to clear previous speech
+    setTimeout(() => {
+        synth.speak(utterance);
+        setStatus('Playing');
+    }, 100);
+}
+
+function pauseAudio() {
+    if (synth.speaking && !isPaused) {
+        console.log("Audio: Pausing synthesis");
+        synth.pause();
+        isPaused = true;
+        setStatus('Paused');
+    }
+}
+
+function stopAudio() {
+    synth.cancel();
+    isPaused = false;
+    utterance = null;
+    setStatus('Stopped');
+    document.getElementById('audioProgress').textContent = '';
+}
+
+function changeSpeed() {
+    // Speed change applies on next play
+    if (utterance) {
+        utterance.rate = parseFloat(document.getElementById('speedControl').value) || 1.0;
+    }
+}
+
+function setStatus(status) {
+    const el = document.getElementById('audioStatus');
+    const colors = { Playing: 'bg-success text-white', Paused: 'bg-warning text-dark', Stopped: 'bg-light text-dark', Error: 'bg-danger text-white' };
+    el.className = 'badge ' + (colors[status] || 'bg-light text-dark');
+    el.textContent = status;
+}
+</script>
+
+{% endblock %}

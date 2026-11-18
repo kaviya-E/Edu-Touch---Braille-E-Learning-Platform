@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Student Activity - Smart Braille{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h2 class="display-6">🎓 {{ student.username }}'s Activity</h2>
+            <p class="text-muted mb-0">Email: {{ student.email }}</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Quiz Attempts</h4>
+        <span class="badge bg-light text-dark rounded-pill">{{ results|length }} Attempts</span>
+    </div>
+    <div class="card-body p-0">
+        {% if results %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Quiz Title</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                        <th>Date Taken</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in results %}
+                    {% set percentage = (r.score / r.total * 100) if r.total > 0 else 0 %}
+                    <tr>
+                        <td>{{ r.quiz.title }}</td>
+                        <td><strong>{{ r.score }}</strong> / {{ r.total }}</td>
+                        <td>
+                            {% if percentage >= 80 %}
+                            <span class="badge bg-success">Excellent ({{ percentage|round|int }}%)</span>
+                            {% elif percentage >= 60 %}
+                            <span class="badge bg-primary">Good ({{ percentage|round|int }}%)</span>
+                            {% elif percentage >= 40 %}
+                            <span class="badge bg-warning text-dark">Average ({{ percentage|round|int }}%)</span>
+                            {% else %}
+                            <span class="badge bg-danger">Needs Practice ({{ percentage|round|int }}%)</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <p>This student has not attempted any quizzes yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow mt-4">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Feedback Provided</h4>
+        <span class="badge bg-light text-dark rounded-pill">{{ feedbacks|length }} Feedbacks</span>
+    </div>
+    <div class="card-body p-0">
+        {% if feedbacks %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Lesson</th>
+                        <th>Rating</th>
+                        <th>Comment</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fb in feedbacks %}
+                    <tr>
+                        <td>{{ fb.lesson.title if fb.lesson else 'General' }}</td>
+                        <td>
+                            <span class="text-warning">
+                                {% for i in range(1, 6) %}
+                                    <i class="bi {% if i <= fb.rating %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+                                {% endfor %}
+                            </span>
+                        </td>
+                        <td><small>{{ fb.comment or 'No comment' }}</small></td>
+                        <td>{{ fb.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <form action="{{ url_for('delete_feedback', feedback_id=fb.id) }}" method="POST" onsubmit="return confirm('Delete this feedback?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <p>This student has not provided any feedback yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
